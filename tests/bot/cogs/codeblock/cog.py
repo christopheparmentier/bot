@@ -32,3 +32,9 @@ class CodeBlockCogTests(unittest.IsolatedAsyncioTestCase):
         cog = CodeBlockCog(self.bot)
         self.assertEqual(cog.bot, self.bot)
         self.assertDictEqual(cog.channel_cooldowns, {1: 0.0, 2: 0.0})
+
+    def test_create_embed(self):
+        """Should create an embed with the instructions as the description."""
+        description = "foo"
+        embed = CodeBlockCog.create_embed(description)
+        self.assertEqual(embed.description, description)

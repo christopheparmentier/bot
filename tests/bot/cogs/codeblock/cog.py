@@ -1,6 +1,8 @@
 import unittest
 from unittest import mock
 
+import discord
+
 from bot.cogs import codeblock
 from bot.cogs.codeblock import CodeBlockCog
 from tests import helpers
@@ -38,3 +40,30 @@ class CodeBlockCogTests(unittest.IsolatedAsyncioTestCase):
         description = "foo"
         embed = CodeBlockCog.create_embed(description)
         self.assertEqual(embed.description, description)
+
+    async def test_get_sent_instructions(self):
+        """Should return the message associated with the event payload or None if not found."""
+        cog = CodeBlockCog(self.bot)
+        payload = discord.RawMessageUpdateEvent({"id": "123", "channel_id": "456"})
+
+        cog.codeblock_message_ids = {payload.message_id: 555}
+        channel = self.bot.get_channel.return_value = helpers.MockTextChannel()
+        channel.fetch_message.side_effect = [8000, discord.NotFound(mock.Mock(), mock.MagicMock())]
+
+        for expected in (8000, None):
+            self.bot.get_channel.reset_mock()
+            channel.fetch_message.reset_mock()  # Seems to work without this but let's be safe.
+
+            with self.subTest(expected=expected):
+                actual = await cog.get_sent_instructions(payload)
+
+                # Ideally, there would only be a simple assert for the returned message's ID.
+                # However, this is not feasible because it relies on discord.py's code working,
+                # which in turn relies on mocking Discord API calls.
+                self.assertEqual(expected, actual)
+
+                # The payload channel should be retrieved.
+                self.bot.get_channel.assert_called_once_with(payload.channel_id)
+
+                # The message associated with the payload message should be retrieved.
+                channel.fetch_message.assert_awaited_once_with(555)

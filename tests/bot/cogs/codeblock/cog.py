@@ -67,3 +67,18 @@ class CodeBlockCogTests(unittest.IsolatedAsyncioTestCase):
 
                 # The message associated with the payload message should be retrieved.
                 channel.fetch_message.assert_awaited_once_with(555)
+
+    @mock.patch("bot.cogs.codeblock.cog.time.time", return_value=500)
+    def test_is_on_cooldown(self, _):
+        """Should return True if the difference between current time and cooldown time is < 300."""
+        cog = CodeBlockCog(self.bot)
+        cog.channel_cooldowns = {1: 500, 2: 300, 3: 200, 4: 100}
+
+        # 5 doesn't exist, so it should have a cooldown of 0.
+        subtests = ((1, True), (2, True), (3, False), (4, False), (5, False))
+
+        for channel_id, expected in subtests:
+            with self.subTest(channel_id=channel_id, expected=expected):
+                channel = helpers.MockTextChannel(id=channel_id)
+                actual = cog.is_on_cooldown(channel)
+                self.assertIs(expected, actual)
